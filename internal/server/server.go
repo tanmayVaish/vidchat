@@ -1,9 +1,15 @@
 package server.go
 
 import (
-	"flag",
-	"os",
+	"flag"
+	"os"
 	"time"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/template/html"
+	"github.com/gofiber/websocket/v2"
 )
 
 var (
@@ -19,11 +25,19 @@ func Run() error {
 		*addr = ":8080"
 	}
 
+	engine := html.New("./views", ".html")
+	app := fiber.New(fiber.Config{Views: engine})
+	
+	app.use(logger.New())
+	app.user(cors.New())
+
 	app.Get("/", handlers.Welcome)
 	
 	app.Get("/room/create", handlers.CreateRoom)
 	app.Get("/room/:id", handlers.JoinRoom)
-	app.Get("/room/:id/ws")
+	app.Get("/room/:id/ws", websocket.New(handlers.RoomWS, websocket.Config{
+		HandshakeTimeout: 10 * time.Second,
+	}))
 	app.Get("/room/:id/chat", handlers.ChatRoom)
 	app.Get("/room/id/chat/ws", websocket.New(handlers.ChatRoomWS))
 	app.Get("/room/id/view/ws", websocket.New(handlers.ViewRoomWS))
